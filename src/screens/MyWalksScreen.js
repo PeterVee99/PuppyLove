@@ -1,0 +1,267 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme/colors';
+import { useApp } from '../context/AppContext';
+
+export default function MyWalksScreen({ navigation }) {
+  const { walks, rsvps } = useApp();
+  const [tab, setTab] = useState('upcoming');
+
+  const hosting = walks.filter((w) => w.organizerId === 'user-1');
+  const attendingWalkIds = rsvps
+    .filter((r) => r.userId === 'user-1' && r.status === 'going')
+    .map((r) => r.walkId);
+  const attending = walks.filter(
+    (w) => attendingWalkIds.includes(w.id) && w.organizerId !== 'user-1'
+  );
+
+  const hasContent = hosting.length > 0 || attending.length > 0;
+
+  const goToDetail = (walkId) => {
+    navigation.getParent()?.navigate('Explore', {
+      screen: 'WalkDetail',
+      params: { walkId },
+    });
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Walks</Text>
+      </View>
+
+      <View style={styles.tabs}>
+        {['upcoming', 'past'].map((t) => (
+          <TouchableOpacity
+            key={t}
+            style={[styles.tab, tab === t && styles.tabActive]}
+            onPress={() => setTab(t)}
+          >
+            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+              {t === 'upcoming' ? 'Upcoming' : 'Past'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {tab === 'past' && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>📅</Text>
+            <Text style={styles.emptyTitle}>No past walks yet</Text>
+            <Text style={styles.emptySub}>Completed walks will appear here</Text>
+          </View>
+        )}
+
+        {tab === 'upcoming' && !hasContent && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🐾</Text>
+            <Text style={styles.emptyTitle}>No walks yet</Text>
+            <Text style={styles.emptySub}>Explore walks to join one, or create your own!</Text>
+          </View>
+        )}
+
+        {tab === 'upcoming' && hosting.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Hosting</Text>
+            {hosting.map((walk) => (
+              <WalkItem
+                key={walk.id}
+                walk={walk}
+                type="hosting"
+                onPress={() => goToDetail(walk.id)}
+              />
+            ))}
+          </>
+        )}
+
+        {tab === 'upcoming' && attending.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Attending</Text>
+            {attending.map((walk) => (
+              <WalkItem
+                key={walk.id}
+                walk={walk}
+                type="attending"
+                onPress={() => goToDetail(walk.id)}
+              />
+            ))}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function WalkItem({ walk, type, onPress }) {
+  const isHosting = type === 'hosting';
+  return (
+    <TouchableOpacity
+      style={[styles.card, isHosting ? styles.cardHosting : styles.cardAttending]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.accent, isHosting ? styles.accentHosting : styles.accentAttending]} />
+      <View style={styles.cardBody}>
+        <View style={styles.cardTop}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {walk.title}
+          </Text>
+          <View
+            style={[
+              styles.badge,
+              isHosting ? styles.badgeHosting : styles.badgeAttending,
+            ]}
+          >
+            <Text
+              style={[
+                styles.badgeText,
+                { color: isHosting ? colors.hosting : colors.primary },
+              ]}
+            >
+              {isHosting ? 'Hosting' : 'Attending'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.metaRow}>
+          <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
+          <Text style={styles.metaText}>
+            {walk.date} · {walk.time}
+          </Text>
+        </View>
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={12} color={colors.textMuted} />
+          <Text style={styles.metaText}>{walk.location}</Text>
+        </View>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.metaRow}>
+            <Ionicons
+              name="people-outline"
+              size={12}
+              color={isHosting ? colors.hosting : colors.primary}
+            />
+            <Text
+              style={[
+                styles.countText,
+                { color: isHosting ? colors.hosting : colors.primary },
+              ]}
+            >
+              {walk.attendeeCount} {isHosting ? 'RSVP' : 'going'}
+            </Text>
+          </View>
+          {isHosting && (
+            <View style={styles.manageBtn}>
+              <Text style={styles.manageBtnText}>Manage</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: colors.white,
+  },
+  title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  tabActive: { backgroundColor: colors.primaryLight },
+  tabText: { fontSize: 14, color: colors.textSecondary, fontWeight: '500' },
+  tabTextActive: { color: colors.primary, fontWeight: '700' },
+  scroll: { padding: 16, paddingBottom: 30 },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHosting: { borderWidth: 1, borderColor: '#FDE68A' },
+  cardAttending: { borderWidth: 1, borderColor: '#BFDBFE' },
+  accent: { width: 4 },
+  accentHosting: { backgroundColor: colors.hosting },
+  accentAttending: { backgroundColor: colors.primary },
+  cardBody: { flex: 1, padding: 12 },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 7,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: 8,
+  },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  badgeHosting: { backgroundColor: '#FEF3C7' },
+  badgeAttending: { backgroundColor: '#DBEAFE' },
+  badgeText: { fontSize: 11, fontWeight: '600' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+  metaText: { fontSize: 12, color: colors.textSecondary },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  countText: { fontSize: 12, fontWeight: '600' },
+  manageBtn: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  manageBtnText: { fontSize: 12, color: colors.hosting, fontWeight: '600' },
+  empty: { alignItems: 'center', paddingTop: 60 },
+  emptyEmoji: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 6 },
+  emptySub: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+});
