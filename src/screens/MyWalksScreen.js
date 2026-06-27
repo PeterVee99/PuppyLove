@@ -15,13 +15,24 @@ export default function MyWalksScreen({ navigation }) {
   const { walks, rsvps } = useApp();
   const [tab, setTab] = useState('upcoming');
 
-  const hosting = walks.filter((w) => w.organizerId === 'user-1');
+  function parseDate(dateStr) {
+    if (!dateStr) return new Date(0);
+    if (dateStr.includes('/')) {
+      const [dd, mm, yyyy] = dateStr.split('/');
+      return new Date(`${yyyy}-${mm}-${dd}`);
+    }
+    return new Date(dateStr);
+  }
+
+  const sortByDate = (list) => [...list].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+
+  const hosting = sortByDate(walks.filter((w) => w.organizerId === 'user-1'));
   const attendingWalkIds = rsvps
     .filter((r) => r.userId === 'user-1' && r.status === 'going')
     .map((r) => r.walkId);
-  const attending = walks.filter(
+  const attending = sortByDate(walks.filter(
     (w) => attendingWalkIds.includes(w.id) && w.organizerId !== 'user-1'
-  );
+  ));
 
   const hasContent = hosting.length > 0 || attending.length > 0;
 
@@ -162,11 +173,9 @@ function WalkItem({ walk, type, onPress }) {
               {walk.attendeeCount} {isHosting ? 'RSVP' : 'going'}
             </Text>
           </View>
-          {isHosting && (
-            <View style={styles.manageBtn}>
-              <Text style={styles.manageBtnText}>Manage</Text>
-            </View>
-          )}
+          <View style={styles.metaRow}>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -253,13 +262,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   countText: { fontSize: 12, fontWeight: '600' },
-  manageBtn: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  manageBtnText: { fontSize: 12, color: colors.hosting, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 6 },

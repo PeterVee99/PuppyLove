@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -9,6 +10,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
@@ -45,6 +47,7 @@ const BLANK = {
   dogSize: 'all_sizes',
   recurring: false,
   recurringUntilObj: null,
+  imageUrl: null,
 };
 
 function formatDate(d) {
@@ -59,6 +62,18 @@ export default function CreateWalkScreen({ navigation }) {
   const { addWalk } = useApp();
   const [form,   setForm]   = useState(BLANK);
   const [errors, setErrors] = useState({});
+
+  const pickCoverPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      set('imageUrl', result.assets[0].uri);
+    }
+  };
 
   const [showDate,          setShowDate]          = useState(false);
   const [showTime,          setShowTime]          = useState(false);
@@ -94,7 +109,7 @@ export default function CreateWalkScreen({ navigation }) {
       recurring:      form.recurring,
       recurringUntil: form.recurringUntilObj ? formatDate(form.recurringUntilObj) : null,
       distance:       null,
-      imageUrl:       null,
+      imageUrl:       form.imageUrl,
     });
     setForm(BLANK);
     setErrors({});
@@ -116,6 +131,27 @@ export default function CreateWalkScreen({ navigation }) {
         </View>
 
         <View style={styles.form}>
+
+          {/* Cover photo */}
+          <Field label="Cover Photo">
+            <TouchableOpacity style={styles.coverPicker} onPress={pickCoverPhoto}>
+              {form.imageUrl ? (
+                <Image source={{ uri: form.imageUrl }} style={styles.coverImage} />
+              ) : (
+                <View style={styles.coverPlaceholder}>
+                  <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
+                  <Text style={styles.coverHint}>Tap to add a cover photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {form.imageUrl && (
+              <TouchableOpacity
+                style={styles.removeCover}
+                onPress={() => set('imageUrl', null)}>
+                <Text style={styles.removeCoverText}>Remove photo</Text>
+              </TouchableOpacity>
+            )}
+          </Field>
 
           {/* Title */}
           <Field label="Walk Title" required error={errors.title}>
@@ -335,6 +371,22 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
   form: { padding: 16 },
+
+  // Cover photo
+  coverPicker: {
+    height: 160,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    backgroundColor: colors.background,
+  },
+  coverImage: { width: '100%', height: '100%' },
+  coverPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  coverHint: { fontSize: 14, color: colors.textMuted },
+  removeCover: { marginTop: 6, alignSelf: 'flex-start' },
+  removeCoverText: { fontSize: 13, color: colors.danger ?? '#EF4444' },
 
   // Field
   field: { marginBottom: 18 },
