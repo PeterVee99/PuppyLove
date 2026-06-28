@@ -150,16 +150,17 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={toggleTheme} activeOpacity={0.7}>
             <Ionicons name="moon-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.menuLabel}>Dark Mode</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View pointerEvents="none">
+              <Switch
+                value={isDark}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.menuItem, { borderBottomWidth: 0 }]}
