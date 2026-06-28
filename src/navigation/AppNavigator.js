@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { useColors } from '../context/AppContext';
 
 import ExploreScreen from '../screens/ExploreScreen';
 import WalkDetailScreen from '../screens/WalkDetailScreen';
@@ -43,6 +43,7 @@ const TAB_ICONS = {
 };
 
 export default function AppNavigator() {
+  const colors = useColors();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -52,7 +53,12 @@ export default function AppNavigator() {
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { paddingBottom: 6, height: 62 },
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          paddingBottom: 6,
+          height: 62,
+        },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         headerShown: false,
       })}

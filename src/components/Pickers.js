@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { useColors } from '../context/AppContext';
 
 // ─── Shared bottom-sheet wrapper ──────────────────────────────────────────────
 
 function Sheet({ visible, title, onCancel, onDone, children }) {
+  const colors = useColors();
+  const styles = makeStyles(colors);
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
       <View style={styles.backdrop}>
@@ -83,7 +85,7 @@ export function DatePickerModal({ visible, value, onConfirm, onCancel }) {
           display="spinner"
           locale="en-AU"
           onChange={(_, d) => { if (d) setDate(d); }}
-          style={styles.nativePicker}
+          style={styles_nativePicker}
         />
       </Sheet>
     );
@@ -97,7 +99,7 @@ export function DatePickerModal({ visible, value, onConfirm, onCancel }) {
       onCancel={onCancel}
       onDone={() => onConfirm(date)}
     >
-      <View style={styles.webPickerWrap}>
+      <View style={styles_webPickerWrap}>
         <DateTimePicker
           value={date}
           mode="date"
@@ -172,7 +174,7 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
           is24Hour={false}
           locale="en-AU"
           onChange={(_, d) => { if (d) setDate(d); }}
-          style={styles.nativePicker}
+          style={styles_nativePicker}
         />
       </Sheet>
     );
@@ -186,7 +188,7 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
       onCancel={onCancel}
       onDone={() => onConfirm(formatTime(date))}
     >
-      <View style={styles.webPickerWrap}>
+      <View style={styles_webPickerWrap}>
         <DateTimePicker
           value={date}
           mode="time"
@@ -202,6 +204,8 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
 // ─── Dropdown list picker ─────────────────────────────────────────────────────
 
 export function DropdownModal({ visible, title, items, selected, onSelect, onCancel }) {
+  const colors = useColors();
+  const styles = makeStyles(colors);
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
       <View style={styles.backdrop}>
@@ -238,61 +242,57 @@ export function DropdownModal({ visible, title, items, selected, onSelect, onCan
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Static styles (platform picker sizing, not themed) ───────────────────────
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#E2E8F0',
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  cancelTxt: { fontSize: 15, color: colors.textSecondary, width: 60 },
-  doneTxt:   { fontSize: 15, fontWeight: '700', color: colors.primary, textAlign: 'right', width: 60 },
-  // Native picker (iOS spinner)
-  nativePicker: {
-    width: '100%',
-    height: 216,
-  },
-  // Web: centre the HTML input
-  webPickerWrap: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  // Dropdown
-  dropItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  dropItemActive: { backgroundColor: colors.primaryLight },
-  dropText:       { fontSize: 15, color: colors.textPrimary },
-  dropTextActive: { color: colors.primary, fontWeight: '600' },
-});
+const styles_nativePicker = { width: '100%', height: 216 };
+const styles_webPickerWrap = { alignItems: 'center', paddingVertical: 24 };
+
+// ─── Themed styles ────────────────────────────────────────────────────────────
+
+function makeStyles(c) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+    card: {
+      backgroundColor: c.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.border,
+      alignSelf: 'center',
+      marginTop: 10,
+      marginBottom: 2,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    cardTitle: { fontSize: 16, fontWeight: '700', color: c.textPrimary },
+    cancelTxt: { fontSize: 15, color: c.textSecondary, width: 60 },
+    doneTxt:   { fontSize: 15, fontWeight: '700', color: c.primary, textAlign: 'right', width: 60 },
+    dropItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    dropItemActive: { backgroundColor: c.primaryLight },
+    dropText:       { fontSize: 15, color: c.textPrimary },
+    dropTextActive: { color: c.primary, fontWeight: '600' },
+  });
+}

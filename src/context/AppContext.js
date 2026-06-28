@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
+import { lightColors, darkColors } from '../theme/colors';
 import { walks as initialWalks, initialRsvps, currentUser as initialUser, dogs as initialDogs } from '../data/mockData';
 
 const AppContext = createContext();
@@ -8,6 +9,10 @@ export function AppProvider({ children }) {
   const [rsvps, setRsvps] = useState(initialRsvps);
   const [user, setUser] = useState(initialUser);
   const [dogs, setDogs] = useState(initialDogs);
+  const [isDark, setIsDark] = useState(false);
+
+  const colors = useMemo(() => isDark ? darkColors : lightColors, [isDark]);
+  const toggleTheme = () => setIsDark(d => !d);
 
   const updateUser = (fields) => setUser((u) => ({ ...u, ...fields }));
 
@@ -56,10 +61,15 @@ export function AppProvider({ children }) {
   };
 
   return (
-    <AppContext.Provider value={{ walks, rsvps, isRsvpd, toggleRsvp, addWalk, user, dogs, updateUser, updateDog, addDog }}>
+    <AppContext.Provider value={{
+      walks, rsvps, isRsvpd, toggleRsvp, addWalk,
+      user, dogs, updateUser, updateDog, addDog,
+      isDark, toggleTheme, colors,
+    }}>
       {children}
     </AppContext.Provider>
   );
 }
 
 export const useApp = () => useContext(AppContext);
+export const useColors = () => useContext(AppContext).colors;

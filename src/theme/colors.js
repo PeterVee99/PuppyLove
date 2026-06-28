@@ -1,4 +1,4 @@
-export const colors = {
+export const lightColors = {
   primary: '#3B82F6',
   primaryLight: '#EFF6FF',
   hosting: '#D97706',
@@ -13,3 +13,22 @@ export const colors = {
   danger: '#EF4444',
   white: '#FFFFFF',
 };
+
+export const darkColors = {
+  primary: '#60A5FA',
+  primaryLight: '#1E3A5F',
+  hosting: '#FBBF24',
+  hostingLight: '#451A03',
+  background: '#0F172A',
+  card: '#1E293B',
+  textPrimary: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  textMuted: '#64748B',
+  border: '#334155',
+  success: '#34D399',
+  danger: '#F87171',
+  white: '#FFFFFF',
+};
+
+// Legacy static export — only for files not yet on dynamic theme
+export const colors = lightColors;

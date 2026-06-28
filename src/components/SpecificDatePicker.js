@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { colors } from '../theme/colors';
+import { useColors } from '../context/AppContext';
 
 export default function SpecificDatePicker({ value, onChange }) {
+  const colors = useColors();
   const [show, setShow] = useState(false);
   const date = value ?? new Date();
   const label = value
@@ -11,9 +12,22 @@ export default function SpecificDatePicker({ value, onChange }) {
     : 'Tap to choose a date';
 
   return (
-    <View style={styles.wrap}>
-      <TouchableOpacity style={styles.btn} onPress={() => setShow(true)}>
-        <Text style={[styles.text, !value && styles.placeholder]}>{label}</Text>
+    <View style={{ marginTop: 8 }}>
+      <TouchableOpacity
+        style={{
+          alignSelf: 'flex-start',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          backgroundColor: colors.background,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: colors.border,
+        }}
+        onPress={() => setShow(true)}
+      >
+        <Text style={{ fontSize: 14, color: value ? colors.textPrimary : colors.textMuted, fontWeight: '500' }}>
+          {label}
+        </Text>
       </TouchableOpacity>
       {show && (
         <DateTimePicker
@@ -30,18 +44,3 @@ export default function SpecificDatePicker({ value, onChange }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { marginTop: 8 },
-  btn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  text: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
-  placeholder: { color: colors.textMuted },
-});
