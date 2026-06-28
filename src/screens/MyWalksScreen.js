@@ -37,7 +37,7 @@ export default function MyWalksScreen({ navigation }) {
   const hasContent = hosting.length > 0 || attending.length > 0;
 
   const goToDetail = (walkId) => {
-    navigation.getParent()?.navigate('Explore', {
+    navigation.navigate('Explore', {
       screen: 'WalkDetail',
       params: { walkId },
     });

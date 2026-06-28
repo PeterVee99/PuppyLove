@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MapEmbed from '../components/MapEmbed';
 import { colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 
@@ -105,6 +106,14 @@ export default function WalkDetailScreen({ navigation, route }) {
               {walk.organizerName}
               {walk.attendeeCount > 1 ? ` + ${walk.attendeeCount - 1} others` : ''}
             </Text>
+          </View>
+
+          {/* Map */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Meeting Point</Text>
+            <View style={styles.mapContainer}>
+              <MapEmbed location={walk.location} />
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -226,6 +235,14 @@ const styles = StyleSheet.create({
   },
   dogBadgeText: { fontSize: 14, color: '#065F46', fontWeight: '500' },
   attendeeText: { fontSize: 14, color: colors.textSecondary },
+  mapContainer: {
+    height: 220,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  map: { flex: 1 },
   actions: {
     padding: 16,
     backgroundColor: colors.white,
