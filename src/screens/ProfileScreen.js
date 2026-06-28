@@ -29,6 +29,26 @@ export default function ProfileScreen() {
   const [profileForm, setProfileForm] = useState({ name: '', location: '', bio: '', profileImageUrl: null });
   const [dogForm, setDogForm] = useState({ name: '', breed: '', size: 'medium', age: '', imageUrl: null });
 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState({
+    walkReminders: true,
+    nearbyWalks: true,
+    rsvpConfirmations: true,
+    messages: true,
+    weeklyDigest: false,
+  });
+
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [privacy, setPrivacy] = useState({
+    showLocation: true,
+    publicProfile: true,
+    allowMessages: true,
+    shareWalkHistory: false,
+  });
+
+  const toggleNotif = (key) => setNotifications((n) => ({ ...n, [key]: !n[key] }));
+  const togglePrivacy = (key) => setPrivacy((p) => ({ ...p, [key]: !p[key] }));
+
   const walksLed = walks.filter((w) => w.organizerId === 'user-1').length;
   const walksJoined = rsvps.filter((r) => r.userId === 'user-1').length;
 
@@ -138,13 +158,13 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setShowNotifications(true)}>
             <Ionicons name="notifications-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.menuLabel}>Notifications</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setShowPrivacy(true)}>
             <Ionicons name="shield-checkmark-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.menuLabel}>Privacy Settings</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -202,6 +222,23 @@ export default function ProfileScreen() {
           <TextInput style={[styles.input, styles.textarea]} value={profileForm.bio} onChangeText={(v) => setProfileForm((f) => ({ ...f, bio: v }))} placeholder="Tell people about yourself..." placeholderTextColor={colors.textMuted} multiline textAlignVertical="top" />
         </FormField>
       </EditModal>
+
+      {/* Notifications Modal */}
+      <SettingsModal visible={showNotifications} title="Notifications" onClose={() => setShowNotifications(false)} styles={styles}>
+        <SettingsRow label="Walk Reminders" sub="Get reminded 1 hour before a walk" value={notifications.walkReminders} onToggle={() => toggleNotif('walkReminders')} colors={colors} styles={styles} />
+        <SettingsRow label="Nearby Walks" sub="New walks posted near you" value={notifications.nearbyWalks} onToggle={() => toggleNotif('nearbyWalks')} colors={colors} styles={styles} />
+        <SettingsRow label="RSVP Confirmations" sub="When someone joins your walk" value={notifications.rsvpConfirmations} onToggle={() => toggleNotif('rsvpConfirmations')} colors={colors} styles={styles} />
+        <SettingsRow label="Messages" sub="New messages from other dog owners" value={notifications.messages} onToggle={() => toggleNotif('messages')} colors={colors} styles={styles} />
+        <SettingsRow label="Weekly Digest" sub="Summary of upcoming walks near you" value={notifications.weeklyDigest} onToggle={() => toggleNotif('weeklyDigest')} colors={colors} styles={styles} last />
+      </SettingsModal>
+
+      {/* Privacy Settings Modal */}
+      <SettingsModal visible={showPrivacy} title="Privacy Settings" onClose={() => setShowPrivacy(false)} styles={styles}>
+        <SettingsRow label="Show My Location" sub="Let others see your general area" value={privacy.showLocation} onToggle={() => togglePrivacy('showLocation')} colors={colors} styles={styles} />
+        <SettingsRow label="Public Profile" sub="Anyone can view your profile" value={privacy.publicProfile} onToggle={() => togglePrivacy('publicProfile')} colors={colors} styles={styles} />
+        <SettingsRow label="Allow Messages" sub="Receive messages from other owners" value={privacy.allowMessages} onToggle={() => togglePrivacy('allowMessages')} colors={colors} styles={styles} />
+        <SettingsRow label="Share Walk History" sub="Show walks you've attended on your profile" value={privacy.shareWalkHistory} onToggle={() => togglePrivacy('shareWalkHistory')} colors={colors} styles={styles} last />
+      </SettingsModal>
 
       {/* Edit / Add Dog Modal */}
       <EditModal visible={showEditDog} title={editingDog ? 'Edit Dog' : 'Add Dog'} onClose={() => setShowEditDog(false)} onSave={saveDog} colors={colors} styles={styles}>
@@ -305,6 +342,50 @@ function DogRow({ dog, last, onEdit, colors, styles }) {
   );
 }
 
+function SettingsModal({ visible, title, onClose, children, styles }) {
+  return (
+    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <View style={{ width: 60 }} />
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.modalSave}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {children}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function SettingsRow({ label, sub, value, onToggle, last, colors, styles }) {
+  return (
+    <TouchableOpacity
+      style={[styles.settingsRow, last && { borderBottomWidth: 0 }]}
+      onPress={onToggle}
+      activeOpacity={0.7}
+    >
+      <View style={{ flex: 1, marginRight: 12 }}>
+        <Text style={styles.settingsLabel}>{label}</Text>
+        {sub ? <Text style={styles.settingsSub}>{sub}</Text> : null}
+      </View>
+      <View pointerEvents="none">
+        <Switch
+          value={value}
+          trackColor={{ false: colors.border, true: colors.primary }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 function makeStyles(c) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
@@ -390,5 +471,11 @@ function makeStyles(c) {
     sizeChipActive: { backgroundColor: c.primary, borderColor: c.primary },
     sizeChipText: { fontSize: 14, color: c.textSecondary, fontWeight: '500' },
     sizeChipTextActive: { color: '#FFFFFF', fontWeight: '700' },
+    settingsRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    settingsLabel: { fontSize: 15, fontWeight: '600', color: c.textPrimary, marginBottom: 2 },
+    settingsSub: { fontSize: 12, color: c.textMuted },
   });
 }
