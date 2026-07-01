@@ -107,7 +107,7 @@ export default function CreateWalkScreen({ navigation }) {
       distance: null, imageUrl: form.imageUrl, vibes: form.vibes,
     });
     setForm(BLANK); setErrors({});
-    navigation.navigate('Explore');
+    navigation.navigate('My Walks');
   };
 
   const attendeesLabel = form.maxAttendees == null ? 'Unlimited' : String(form.maxAttendees);
