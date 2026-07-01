@@ -13,6 +13,13 @@ const SIZE_LABELS = { small: 'Small', medium: 'Medium', large: 'Large' };
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 async function pickImage() {
+  if (Platform.OS !== 'web') {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow photo library access in Settings to upload an image.');
+      return null;
+    }
+  }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85,
   });

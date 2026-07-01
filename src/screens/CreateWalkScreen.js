@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, TextInput,
-  Switch, StyleSheet, SafeAreaView, Alert,
+  Switch, StyleSheet, SafeAreaView, Alert, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +66,13 @@ export default function CreateWalkScreen({ navigation }) {
   };
 
   const pickCoverPhoto = async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo library access in Settings to add a cover photo.');
+        return;
+      }
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.85,
     });

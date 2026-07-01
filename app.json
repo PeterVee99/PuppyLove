@@ -1,11 +1,14 @@
 {
   "expo": {
-    "name": "_setup",
-    "slug": "_setup",
+    "name": "PuppyLove",
+    "slug": "puppylove",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "updates": {
+      "enabled": false
+    },
     "ios": {
       "supportsTablet": true
     },
