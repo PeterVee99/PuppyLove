@@ -233,7 +233,7 @@ function makeStyles(c) {
     hero: { height: 200, backgroundColor: '#BFDBFE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     backBtn: {
       position: 'absolute',
-      top: 16 + (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0),
+      top: 16 + (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 24 : 0),
       left: 16,
       backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 20, padding: 8,
     },
