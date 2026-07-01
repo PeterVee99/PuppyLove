@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
-  ScrollView, StyleSheet, SafeAreaView, Modal,
+  ScrollView, StyleSheet, Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, TextInput,
-  Switch, StyleSheet, SafeAreaView, Alert, Platform,
+  Switch, StyleSheet, Alert, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';

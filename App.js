@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider, useApp } from './src/context/AppContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -29,8 +30,10 @@ function Root() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Root />
-    </AppProvider>
+    <SafeAreaProvider>
+      <AppProvider>
+        <Root />
+      </AppProvider>
+    </SafeAreaProvider>
   );
 }
