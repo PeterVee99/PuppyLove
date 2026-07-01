@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { useColors } from '../context/AppContext';
+import { useColors, useApp } from '../context/AppContext';
 
 import ExploreScreen from '../screens/ExploreScreen';
 import WalkDetailScreen from '../screens/WalkDetailScreen';
@@ -44,6 +44,7 @@ const TAB_ICONS = {
 
 export default function AppNavigator() {
   const colors = useColors();
+  const { unreadMessageCount } = useApp();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -65,7 +66,11 @@ export default function AppNavigator() {
     >
       <Tab.Screen name="Explore" component={ExploreNavigator} />
       <Tab.Screen name="My Walks" component={MyWalksScreen} />
-      <Tab.Screen name="Messages" component={MessagesNavigator} />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesNavigator}
+        options={{ tabBarBadge: unreadMessageCount > 0 ? unreadMessageCount : undefined }}
+      />
       <Tab.Screen name="Create" component={CreateWalkScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

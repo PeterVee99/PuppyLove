@@ -20,7 +20,7 @@ function formatTime(ts) {
 }
 
 export default function MessagesScreen({ navigation }) {
-  const { session } = useApp();
+  const { session, clearUnreadMessages } = useApp();
   const colors = useColors();
   const styles = makeStyles(colors);
   const [tab, setTab] = useState('direct');
@@ -29,11 +29,12 @@ export default function MessagesScreen({ navigation }) {
 
   const loadConversations = useCallback(() => {
     if (!session) return;
+    clearUnreadMessages();
     supabase.rpc('get_conversations_for_user').then(({ data }) => {
       if (data) setConvs(data);
       setLoading(false);
     });
-  }, [session]);
+  }, [session, clearUnreadMessages]);
 
   useFocusEffect(loadConversations);
 

@@ -189,8 +189,20 @@ export default function WalkDetailScreen({ navigation, route }) {
             style={[styles.rsvpBtn, rsvpd && styles.rsvpBtnConfirmed]}
             onPress={handleRsvp}
           >
-            <Ionicons name={rsvpd ? 'checkmark-circle' : 'calendar-outline'} size={20} color="#FFFFFF" />
-            <Text style={styles.rsvpBtnText}>{rsvpd ? "You're Going!" : 'RSVP to Walk'}</Text>
+            {rsvpd ? (
+              <View style={styles.rsvpBtnInner}>
+                <View style={styles.rsvpBtnRow}>
+                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                  <Text style={styles.rsvpBtnText}>You're Going!</Text>
+                </View>
+                <Text style={styles.rsvpBtnSub}>Tap to cancel</Text>
+              </View>
+            ) : (
+              <View style={styles.rsvpBtnRow}>
+                <Ionicons name="calendar-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.rsvpBtnText}>RSVP to Walk</Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -284,12 +296,15 @@ function makeStyles(c) {
       borderTopWidth: 1, borderTopColor: c.border, gap: 10,
     },
     rsvpBtn: {
-      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 15,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: c.primary, borderRadius: 14, paddingVertical: 12,
+      alignItems: 'center', justifyContent: 'center',
     },
+    rsvpBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rsvpBtnInner: { alignItems: 'center', gap: 2 },
     rsvpBtnConfirmed: { backgroundColor: c.success },
     rsvpBtnHosting: { backgroundColor: c.hosting },
     rsvpBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+    rsvpBtnSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '500' },
     msgBtn: {
       borderWidth: 1.5, borderColor: c.primary, borderRadius: 14, paddingVertical: 13,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

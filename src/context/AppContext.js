@@ -84,23 +84,26 @@ export function AppProvider({ children }) {
   const [user,     setUser]     = useState(null);
   const [dogs,     setDogs]     = useState([]);
   const [isDark,   setIsDark]   = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   const colors      = useMemo(() => (isDark ? darkColors : lightColors), [isDark]);
   const toggleTheme = () => setIsDark((d) => !d);
 
   // ── Fetch all data for the signed-in user ──────────────────────────────────
   const loadData = useCallback(async (userId) => {
-    const [walksRes, rsvpsRes, profileRes, dogsRes] = await Promise.all([
+    const [walksRes, rsvpsRes, profileRes, dogsRes, convsRes] = await Promise.all([
       supabase.from('walks').select('*').eq('status', 'active').order('walk_date', { ascending: true }),
       supabase.from('rsvps').select('*').eq('user_id', userId),
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('dogs').select('*').eq('owner_id', userId),
+      supabase.rpc('get_conversations_for_user'),
     ]);
 
     if (walksRes.data)   setWalks(walksRes.data.map(mapWalk));
     if (rsvpsRes.data)   setRsvps(rsvpsRes.data.map(mapRsvp));
     if (profileRes.data) setUser(mapProfile(profileRes.data));
     if (dogsRes.data)    setDogs(dogsRes.data.map(mapDog));
+    if (convsRes.data)   setUnreadMessageCount(convsRes.data.filter(c => c.last_message_time).length);
   }, []);
 
   // ── Auth state ─────────────────────────────────────────────────────────────
@@ -290,6 +293,9 @@ export function AppProvider({ children }) {
     setDogs((prev) => [...prev, mapDog(data)]);
   };
 
+  // ── clearUnreadMessages ────────────────────────────────────────────────────
+  const clearUnreadMessages = useCallback(() => setUnreadMessageCount(0), []);
+
   // ── signOut ────────────────────────────────────────────────────────────────
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -302,6 +308,7 @@ export function AppProvider({ children }) {
       isRsvpd, toggleRsvp, addWalk,
       updateUser, updateDog, addDog,
       isDark, toggleTheme, colors,
+      unreadMessageCount, clearUnreadMessages,
       signOut,
     }}>
       {children}
