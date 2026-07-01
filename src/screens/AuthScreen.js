@@ -63,7 +63,18 @@ export default function AuthScreen() {
         // AppProvider's onAuthStateChange fires and loads data automatically
       }
     } catch (err) {
-      setError(err?.message ?? 'Something went wrong. Please try again.');
+      const raw = err?.message ?? '';
+      if (raw.includes('Invalid login credentials') || raw.includes('invalid_credentials')) {
+        setError('Email or password is incorrect.');
+      } else if (raw.includes('Email not confirmed') || raw.includes('email_not_confirmed')) {
+        setError('Please confirm your email address before signing in. Check your inbox.');
+      } else if (raw.includes('User already registered') || raw.includes('user_already_exists')) {
+        setError('An account with this email already exists. Try signing in instead.');
+      } else if (raw.includes('signup_disabled')) {
+        setError('New signups are currently disabled. Please contact support.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
