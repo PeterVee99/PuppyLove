@@ -216,10 +216,11 @@ export function AppProvider({ children }) {
     const userId = session?.user?.id;
     if (!userId) return;
 
-    // Upload profile photo if local URI
+    // Upload profile photo if local URI; keep existing remote URL if upload fails
     let profileImageUrl = fields.profileImageUrl ?? user?.profileImageUrl;
     if (profileImageUrl && !profileImageUrl.startsWith('http')) {
-      profileImageUrl = await uploadImage(profileImageUrl, 'avatars', `${userId}/profile.jpg`);
+      const uploaded = await uploadImage(profileImageUrl, 'avatars', `${userId}/profile.jpg`);
+      profileImageUrl = uploaded?.startsWith('http') ? uploaded : (user?.profileImageUrl ?? null);
     }
 
     const merged = { ...user, ...fields, profileImageUrl };
@@ -242,7 +243,8 @@ export function AppProvider({ children }) {
 
     let imageUrl = fields.imageUrl;
     if (imageUrl && !imageUrl.startsWith('http')) {
-      imageUrl = await uploadImage(imageUrl, 'dogs', `${userId}/${dogId}.jpg`);
+      const uploaded = await uploadImage(imageUrl, 'dogs', `${userId}/${dogId}.jpg`);
+      imageUrl = uploaded?.startsWith('http') ? uploaded : (dogs.find(d => d.id === dogId)?.imageUrl ?? null);
     }
 
     const updated = { ...fields, imageUrl };
@@ -267,7 +269,8 @@ export function AppProvider({ children }) {
     let imageUrl = dogData.imageUrl;
     if (imageUrl && !imageUrl.startsWith('http')) {
       const tempId = Date.now();
-      imageUrl = await uploadImage(imageUrl, 'dogs', `${userId}/${tempId}.jpg`);
+      const uploaded = await uploadImage(imageUrl, 'dogs', `${userId}/${tempId}.jpg`);
+      imageUrl = uploaded?.startsWith('http') ? uploaded : null;
     }
 
     const { data, error } = await supabase.from('dogs').insert({

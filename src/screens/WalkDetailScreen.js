@@ -178,13 +178,20 @@ export default function WalkDetailScreen({ navigation, route }) {
       </ScrollView>
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.rsvpBtn, rsvpd && styles.rsvpBtnConfirmed]}
-          onPress={handleRsvp}
-        >
-          <Ionicons name={rsvpd ? 'checkmark-circle' : 'calendar-outline'} size={20} color="#FFFFFF" />
-          <Text style={styles.rsvpBtnText}>{rsvpd ? "You're Going!" : 'RSVP to Walk'}</Text>
-        </TouchableOpacity>
+        {isOwnWalk ? (
+          <View style={[styles.rsvpBtn, styles.rsvpBtnHosting]}>
+            <Ionicons name="star" size={20} color="#FFFFFF" />
+            <Text style={styles.rsvpBtnText}>You're Hosting</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.rsvpBtn, rsvpd && styles.rsvpBtnConfirmed]}
+            onPress={handleRsvp}
+          >
+            <Ionicons name={rsvpd ? 'checkmark-circle' : 'calendar-outline'} size={20} color="#FFFFFF" />
+            <Text style={styles.rsvpBtnText}>{rsvpd ? "You're Going!" : 'RSVP to Walk'}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[styles.msgBtn, isOwnWalk && styles.msgBtnDisabled]}
           onPress={handleMessageOrganiser}
@@ -278,6 +285,7 @@ function makeStyles(c) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     },
     rsvpBtnConfirmed: { backgroundColor: c.success },
+    rsvpBtnHosting: { backgroundColor: c.hosting },
     rsvpBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
     msgBtn: {
       borderWidth: 1.5, borderColor: c.primary, borderRadius: 14, paddingVertical: 13,
