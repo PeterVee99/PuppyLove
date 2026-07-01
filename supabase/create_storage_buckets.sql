@@ -16,6 +16,12 @@ CREATE POLICY "Auth users can upload images"
 -- Allow authenticated users to overwrite their own files
 CREATE POLICY "Auth users can update images"
   ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id IN ('avatars', 'dogs', 'walks'))
+  WITH CHECK (bucket_id IN ('avatars', 'dogs', 'walks'));
+
+-- Allow authenticated users to delete (needed for upsert to replace existing files)
+CREATE POLICY "Auth users can delete images"
+  ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id IN ('avatars', 'dogs', 'walks'));
 
 -- Allow anyone to read (buckets are public, but policy still needed for SELECT)

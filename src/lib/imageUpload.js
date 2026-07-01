@@ -39,7 +39,7 @@ export async function uploadImage(localUri, bucket, filePath) {
     if (error) throw error;
 
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    return data.publicUrl;
+    return `${data.publicUrl}?t=${Date.now()}`;
   } catch (err) {
     if (__DEV__) console.error(`Image upload failed (${bucket}/${filePath}):`, err.message ?? err);
     return null;
