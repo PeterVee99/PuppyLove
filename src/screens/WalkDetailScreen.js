@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Alert,
-  Image, ActivityIndicator,
+  Image, ActivityIndicator, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';
@@ -232,7 +232,9 @@ function makeStyles(c) {
     container: { flex: 1, backgroundColor: c.background },
     hero: { height: 200, backgroundColor: '#BFDBFE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     backBtn: {
-      position: 'absolute', top: 16, left: 16,
+      position: 'absolute',
+      top: 16 + (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0),
+      left: 16,
       backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 20, padding: 8,
     },
     heroEmoji: { fontSize: 64 },
