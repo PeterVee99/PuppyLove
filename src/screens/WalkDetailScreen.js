@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Alert,
+  Image, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import MapEmbed from '../components/MapEmbed';
+
+const VIBE_META = {
+  leisurely: { label: 'Leisurely', emoji: '🌿' },
+  off_lead:  { label: 'Off Lead',  emoji: '🐕' },
+  wine:      { label: 'Wine',      emoji: '🍷' },
+  coffee:    { label: 'Coffee',    emoji: '☕' },
+};
 
 const DOG_SIZE_LABELS = {
   all_sizes: 'All sizes welcome',
@@ -15,29 +24,73 @@ const DOG_SIZE_LABELS = {
 
 export default function WalkDetailScreen({ navigation, route }) {
   const { walkId } = route.params;
-  const { walks, isRsvpd, toggleRsvp } = useApp();
+  const { walks, isRsvpd, toggleRsvp, session } = useApp();
   const colors = useColors();
   const styles = makeStyles(colors);
   const walk = walks.find((w) => w.id === walkId);
+
+  const [attendees, setAttendees] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+
+  useEffect(() => {
+    if (!walkId) return;
+    supabase
+      .from('rsvps')
+      .select('user_id, profiles(id, name)')
+      .eq('walk_id', walkId)
+      .eq('status', 'going')
+      .then(({ data }) => {
+        if (data) setAttendees(data.map((r) => r.profiles).filter(Boolean));
+      });
+  }, [walkId]);
 
   if (!walk) return null;
 
   const rsvpd = isRsvpd(walkId);
   const dogLabel = walk.dogFriendlyFor.map((s) => DOG_SIZE_LABELS[s]).join(', ');
+  const isOwnWalk = walk.organizerId === session?.user?.id;
 
   const handleRsvp = () => {
     toggleRsvp(walkId);
     if (!rsvpd) Alert.alert("You're Going! 🐾", `RSVP confirmed for "${walk.title}"`);
   };
 
+  const handleMessageOrganiser = async () => {
+    if (isOwnWalk) return;
+    setMsgLoading(true);
+    try {
+      const { data: convId, error } = await supabase.rpc('create_or_get_direct_conversation', {
+        other_user_id: walk.organizerId,
+        other_user_name: walk.organizerName,
+      });
+      if (error) throw error;
+      navigation.getParent()?.navigate('Messages', {
+        screen: 'Conversation',
+        params: {
+          conversationId: convId,
+          title: walk.organizerName,
+          returnTo: { tab: 'Explore', screen: 'WalkDetail', params: { walkId: walk.id } },
+        },
+      });
+    } catch (err) {
+      if (__DEV__) console.error('Message organiser failed:', err);
+    } finally {
+      setMsgLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
+          {walk.imageUrl ? (
+            <Image source={{ uri: walk.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : (
+            <Text style={styles.heroEmoji}>🐕</Text>
+          )}
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.heroEmoji}>🐕</Text>
           {walk.recurring && (
             <View style={styles.recurringTag}>
               <Ionicons name="refresh-outline" size={12} color="#FFFFFF" />
@@ -77,6 +130,23 @@ export default function WalkDetailScreen({ navigation, route }) {
             </View>
           ) : null}
 
+          {walk.vibes && walk.vibes.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Vibe</Text>
+              <View style={styles.vibeRow}>
+                {walk.vibes.map((v) => {
+                  const meta = VIBE_META[v];
+                  if (!meta) return null;
+                  return (
+                    <View key={v} style={styles.vibeBadge}>
+                      <Text style={styles.vibeBadgeText}>{meta.emoji} {meta.label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Dog Requirements</Text>
             <View style={styles.dogBadge}>
@@ -85,11 +155,17 @@ export default function WalkDetailScreen({ navigation, route }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Attendees</Text>
-            <Text style={styles.attendeeText}>
-              {walk.organizerName}
-              {walk.attendeeCount > 1 ? ` + ${walk.attendeeCount - 1} others` : ''}
-            </Text>
+            <Text style={styles.sectionTitle}>Attendees ({attendees.length})</Text>
+            {attendees.length === 0 ? (
+              <Text style={styles.attendeeText}>No confirmed attendees yet</Text>
+            ) : (
+              attendees.map((a) => (
+                <View key={a.id} style={styles.attendeeRow}>
+                  <Ionicons name="person-circle-outline" size={18} color={colors.textMuted} />
+                  <Text style={styles.attendeeText}>{a.name}</Text>
+                </View>
+              ))
+            )}
           </View>
 
           <View style={styles.section}>
@@ -110,11 +186,20 @@ export default function WalkDetailScreen({ navigation, route }) {
           <Text style={styles.rsvpBtnText}>{rsvpd ? "You're Going!" : 'RSVP to Walk'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.msgBtn}
-          onPress={() => navigation.getParent()?.navigate('Messages')}
+          style={[styles.msgBtn, isOwnWalk && styles.msgBtnDisabled]}
+          onPress={handleMessageOrganiser}
+          disabled={isOwnWalk || msgLoading}
         >
-          <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
-          <Text style={styles.msgBtnText}>Message Organiser</Text>
+          {msgLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <>
+              <Ionicons name="chatbubble-outline" size={20} color={isOwnWalk ? colors.textMuted : colors.primary} />
+              <Text style={[styles.msgBtnText, isOwnWalk && { color: colors.textMuted }]}>
+                {isOwnWalk ? 'Your Walk' : 'Message Organiser'}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -138,7 +223,7 @@ function InfoRow({ icon, label, value }) {
 function makeStyles(c) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    hero: { height: 200, backgroundColor: '#BFDBFE', alignItems: 'center', justifyContent: 'center' },
+    hero: { height: 200, backgroundColor: '#BFDBFE', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     backBtn: {
       position: 'absolute', top: 16, left: 16,
       backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 20, padding: 8,
@@ -175,6 +260,13 @@ function makeStyles(c) {
       borderRadius: 10, alignSelf: 'flex-start',
     },
     dogBadgeText: { fontSize: 14, color: '#065F46', fontWeight: '500' },
+    vibeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    vibeBadge: {
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+      backgroundColor: c.primaryLight,
+    },
+    vibeBadgeText: { fontSize: 14, color: c.primary, fontWeight: '600' },
+    attendeeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
     attendeeText: { fontSize: 14, color: c.textSecondary },
     mapContainer: { height: 220, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: c.border },
     actions: {
@@ -191,6 +283,7 @@ function makeStyles(c) {
       borderWidth: 1.5, borderColor: c.primary, borderRadius: 14, paddingVertical: 13,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     },
+    msgBtnDisabled: { borderColor: c.border, opacity: 0.5 },
     msgBtnText: { color: c.primary, fontSize: 15, fontWeight: '600' },
   });
 }

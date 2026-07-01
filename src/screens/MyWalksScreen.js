@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  SafeAreaView, Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';
 
 export default function MyWalksScreen({ navigation }) {
-  const { walks, rsvps } = useApp();
+  const { walks, rsvps, session } = useApp();
+  const userId = session?.user?.id;
   const colors = useColors();
   const styles = makeStyles(colors);
   const [tab, setTab] = useState('upcoming');
@@ -18,17 +22,35 @@ export default function MyWalksScreen({ navigation }) {
     return new Date(dateStr);
   }
 
-  const sortByDate = (list) => [...list].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  function formatDate(dateStr) {
+    const d = parseDate(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
 
-  const hosting = sortByDate(walks.filter((w) => w.organizerId === 'user-1'));
+  const sortAsc  = (list) => [...list].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  const sortDesc = (list) => [...list].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const isPast     = (w) => parseDate(w.date) < today;
+  const isUpcoming = (w) => parseDate(w.date) >= today;
+
+  const myWalks = walks.filter((w) => w.organizerId === userId);
   const attendingWalkIds = rsvps
-    .filter((r) => r.userId === 'user-1' && r.status === 'going')
+    .filter((r) => r.userId === userId && r.status === 'going')
     .map((r) => r.walkId);
-  const attending = sortByDate(
-    walks.filter((w) => attendingWalkIds.includes(w.id) && w.organizerId !== 'user-1')
-  );
+  const attendingWalks = walks.filter((w) => attendingWalkIds.includes(w.id) && w.organizerId !== userId);
 
-  const hasContent = hosting.length > 0 || attending.length > 0;
+  // Upcoming tab
+  const hostingUpcoming  = sortAsc(myWalks.filter(isUpcoming));
+  const attendingUpcoming = sortAsc(attendingWalks.filter(isUpcoming));
+
+  // Past tab — most recent first
+  const hostingPast   = sortDesc(myWalks.filter(isPast));
+  const attendingPast = sortDesc(attendingWalks.filter(isPast));
+
+  const hasUpcoming = hostingUpcoming.length > 0 || attendingUpcoming.length > 0;
+  const hasPast     = hostingPast.length > 0 || attendingPast.length > 0;
 
   const goToDetail = (walkId) => {
     navigation.navigate('Explore', { screen: 'WalkDetail', params: { walkId } });
@@ -55,72 +77,101 @@ export default function MyWalksScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {tab === 'past' && (
+
+        {/* ── Upcoming ── */}
+        {tab === 'upcoming' && !hasUpcoming && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🐾</Text>
+            <Text style={styles.emptyTitle}>No upcoming walks</Text>
+            <Text style={styles.emptySub}>Explore walks to join one, or create your own!</Text>
+          </View>
+        )}
+        {tab === 'upcoming' && hostingUpcoming.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Hosting</Text>
+            {hostingUpcoming.map((walk) => (
+              <WalkItem key={walk.id} walk={walk} type="hosting" formatDate={formatDate} onPress={() => goToDetail(walk.id)} />
+            ))}
+          </>
+        )}
+        {tab === 'upcoming' && attendingUpcoming.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Attending</Text>
+            {attendingUpcoming.map((walk) => (
+              <WalkItem key={walk.id} walk={walk} type="attending" formatDate={formatDate} onPress={() => goToDetail(walk.id)} />
+            ))}
+          </>
+        )}
+
+        {/* ── Past ── */}
+        {tab === 'past' && !hasPast && (
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>📅</Text>
             <Text style={styles.emptyTitle}>No past walks yet</Text>
             <Text style={styles.emptySub}>Completed walks will appear here</Text>
           </View>
         )}
-
-        {tab === 'upcoming' && !hasContent && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🐾</Text>
-            <Text style={styles.emptyTitle}>No walks yet</Text>
-            <Text style={styles.emptySub}>Explore walks to join one, or create your own!</Text>
-          </View>
-        )}
-
-        {tab === 'upcoming' && hosting.length > 0 && (
+        {tab === 'past' && hostingPast.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>Hosting</Text>
-            {hosting.map((walk) => (
-              <WalkItem key={walk.id} walk={walk} type="hosting" onPress={() => goToDetail(walk.id)} />
+            <Text style={styles.sectionLabel}>Hosted</Text>
+            {hostingPast.map((walk) => (
+              <WalkItem key={walk.id} walk={walk} type="hosting" formatDate={formatDate} onPress={() => goToDetail(walk.id)} />
+            ))}
+          </>
+        )}
+        {tab === 'past' && attendingPast.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Attended</Text>
+            {attendingPast.map((walk) => (
+              <WalkItem key={walk.id} walk={walk} type="attending" formatDate={formatDate} onPress={() => goToDetail(walk.id)} />
             ))}
           </>
         )}
 
-        {tab === 'upcoming' && attending.length > 0 && (
-          <>
-            <Text style={styles.sectionLabel}>Attending</Text>
-            {attending.map((walk) => (
-              <WalkItem key={walk.id} walk={walk} type="attending" onPress={() => goToDetail(walk.id)} />
-            ))}
-          </>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function WalkItem({ walk, type, onPress }) {
+function WalkItem({ walk, type, formatDate, onPress }) {
   const colors = useColors();
   const styles = makeStyles(colors);
   const isHosting = type === 'hosting';
+
   return (
-    <TouchableOpacity
-      style={[styles.card, isHosting ? styles.cardHosting : styles.cardAttending]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.accent, isHosting ? styles.accentHosting : styles.accentAttending]} />
-      <View style={styles.cardBody}>
-        <View style={styles.cardTop}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{walk.title}</Text>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.78}>
+
+      {/* Thumbnail */}
+      <View style={styles.thumbOuter}>
+        {walk.imageUrl ? (
+          <Image source={{ uri: walk.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.thumbPlaceholder]}>
+            <Text style={styles.thumbEmoji}>🐕</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
+      <View style={styles.body}>
+        <View style={styles.bodyTop}>
+          <Text style={styles.cardTitle} numberOfLines={2}>{walk.title}</Text>
           <View style={[styles.badge, isHosting ? styles.badgeHosting : styles.badgeAttending]}>
             <Text style={[styles.badgeText, { color: isHosting ? colors.hosting : colors.primary }]}>
               {isHosting ? 'Hosting' : 'Attending'}
             </Text>
           </View>
         </View>
+
         <View style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
-          <Text style={styles.metaText}>{walk.date} · {walk.time}</Text>
+          <Text style={styles.metaText}>{formatDate(walk.date)}  ·  {walk.time}</Text>
         </View>
         <View style={styles.metaRow}>
           <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-          <Text style={styles.metaText}>{walk.location}</Text>
+          <Text style={styles.metaText} numberOfLines={1}>{walk.location}</Text>
         </View>
+
         <View style={styles.cardFooter}>
           <View style={styles.metaRow}>
             <Ionicons name="people-outline" size={12} color={isHosting ? colors.hosting : colors.primary} />
@@ -154,28 +205,49 @@ function makeStyles(c) {
       fontSize: 12, fontWeight: '700', color: c.textMuted,
       textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginTop: 4,
     },
+
+    // Card
     card: {
-      backgroundColor: c.card, borderRadius: 14, marginBottom: 12,
-      flexDirection: 'row', overflow: 'hidden',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+      backgroundColor: c.card,
+      borderRadius: 16,
+      marginBottom: 12,
+      flexDirection: 'row',
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.07,
+      shadowRadius: 6,
+      elevation: 2,
     },
-    cardHosting: { borderWidth: 1, borderColor: '#FDE68A' },
-    cardAttending: { borderWidth: 1, borderColor: '#BFDBFE' },
-    accent: { width: 4 },
-    accentHosting: { backgroundColor: c.hosting },
-    accentAttending: { backgroundColor: c.primary },
-    cardBody: { flex: 1, padding: 12 },
-    cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 },
-    cardTitle: { fontSize: 15, fontWeight: '600', color: c.textPrimary, flex: 1, marginRight: 8 },
-    badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+
+    // Thumbnail
+    thumbOuter: { width: 100 },
+    thumbPlaceholder: {
+      backgroundColor: '#DBEAFE',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    thumbEmoji: { fontSize: 32 },
+
+    // Body
+    body: { flex: 1, padding: 12 },
+    bodyTop: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'flex-start', marginBottom: 7, gap: 6,
+    },
+    cardTitle: { fontSize: 15, fontWeight: '700', color: c.textPrimary, flex: 1 },
+    badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, flexShrink: 0 },
     badgeHosting: { backgroundColor: '#FEF3C7' },
     badgeAttending: { backgroundColor: '#DBEAFE' },
     badgeText: { fontSize: 11, fontWeight: '600' },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
-    metaText: { fontSize: 12, color: c.textSecondary },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+    metaText: { fontSize: 12, color: c.textSecondary, flex: 1 },
+    cardFooter: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginTop: 6,
+    },
     countText: { fontSize: 12, fontWeight: '600' },
+
+    // Empty
     empty: { alignItems: 'center', paddingTop: 60 },
     emptyEmoji: { fontSize: 48, marginBottom: 12 },
     emptyTitle: { fontSize: 18, fontWeight: '700', color: c.textPrimary, marginBottom: 6 },

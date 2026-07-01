@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { createElement, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,16 +12,23 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../context/AppContext';
 
-// ─── Shared bottom-sheet wrapper ──────────────────────────────────────────────
+// ─── Shared bottom-sheet / centered-dialog wrapper ────────────────────────────
 
 function Sheet({ visible, title, onCancel, onDone, children }) {
   const colors = useColors();
   const styles = makeStyles(colors);
+  const isWeb = Platform.OS === 'web';
+
   return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <View style={styles.handle} />
+    <Modal
+      visible={visible}
+      transparent
+      animationType={isWeb ? 'fade' : 'slide'}
+      statusBarTranslucent
+    >
+      <View style={isWeb ? styles.backdropWeb : styles.backdrop}>
+        <View style={isWeb ? styles.cardWeb : styles.card}>
+          {!isWeb && <View style={styles.handle} />}
           <View style={styles.cardHeader}>
             <TouchableOpacity
               onPress={onCancel}
@@ -38,10 +45,89 @@ function Sheet({ visible, title, onCancel, onDone, children }) {
             </TouchableOpacity>
           </View>
           {children}
-          <View style={{ height: 28 }} />
+          {!isWeb && <View style={{ height: 28 }} />}
         </View>
       </View>
     </Modal>
+  );
+}
+
+// ─── Web-only: styled <input type="date"> ────────────────────────────────────
+
+function WebDateInput({ date, onChange }) {
+  const colors = useColors();
+  const pad = (n) => String(n).padStart(2, '0');
+  const value =
+    date instanceof Date
+      ? `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+      : '';
+
+  return (
+    <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
+      {createElement('input', {
+        type: 'date',
+        value,
+        onChange: (e) => {
+          if (!e.target.value) return;
+          const [y, m, d] = e.target.value.split('-').map(Number);
+          onChange(new Date(y, m - 1, d));
+        },
+        style: {
+          display: 'block',
+          width: '100%',
+          padding: '13px 16px',
+          fontSize: '16px',
+          color: colors.textPrimary,
+          backgroundColor: colors.background,
+          border: `1.5px solid ${colors.border}`,
+          borderRadius: '12px',
+          outline: 'none',
+          boxSizing: 'border-box',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          cursor: 'pointer',
+        },
+      })}
+    </View>
+  );
+}
+
+// ─── Web-only: styled <input type="time"> ────────────────────────────────────
+
+function WebTimeInput({ date, onChange }) {
+  const colors = useColors();
+  const pad = (n) => String(n).padStart(2, '0');
+  const h = date instanceof Date ? date.getHours() : 9;
+  const m = date instanceof Date ? date.getMinutes() : 0;
+  const value = `${pad(h)}:${pad(m)}`;
+
+  return (
+    <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
+      {createElement('input', {
+        type: 'time',
+        value,
+        onChange: (e) => {
+          if (!e.target.value) return;
+          const [hh, mm] = e.target.value.split(':').map(Number);
+          const d = new Date();
+          d.setHours(hh, mm, 0, 0);
+          onChange(d);
+        },
+        style: {
+          display: 'block',
+          width: '100%',
+          padding: '13px 16px',
+          fontSize: '16px',
+          color: colors.textPrimary,
+          backgroundColor: colors.background,
+          border: `1.5px solid ${colors.border}`,
+          borderRadius: '12px',
+          outline: 'none',
+          boxSizing: 'border-box',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          cursor: 'pointer',
+        },
+      })}
+    </View>
   );
 }
 
@@ -55,7 +141,6 @@ export function DatePickerModal({ visible, value, onConfirm, onCancel }) {
     if (value instanceof Date) setDate(value);
   }, [value]);
 
-  // Android shows the native date-dialog directly — no modal wrapper needed
   if (Platform.OS === 'android') {
     if (!visible) return null;
     return (
@@ -70,15 +155,9 @@ export function DatePickerModal({ visible, value, onConfirm, onCancel }) {
     );
   }
 
-  // iOS: native spinner wheel inside a bottom sheet
   if (Platform.OS === 'ios') {
     return (
-      <Sheet
-        visible={visible}
-        title="Select Date"
-        onCancel={onCancel}
-        onDone={() => onConfirm(date)}
-      >
+      <Sheet visible={visible} title="Select Date" onCancel={onCancel} onDone={() => onConfirm(date)}>
         <DateTimePicker
           value={date}
           mode="date"
@@ -91,22 +170,10 @@ export function DatePickerModal({ visible, value, onConfirm, onCancel }) {
     );
   }
 
-  // Web fallback: HTML date input inside the sheet
+  // Web: centered dialog with styled HTML date input
   return (
-    <Sheet
-      visible={visible}
-      title="Select Date"
-      onCancel={onCancel}
-      onDone={() => onConfirm(date)}
-    >
-      <View style={styles_webPickerWrap}>
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={(_, d) => { if (d) setDate(d); }}
-        />
-      </View>
+    <Sheet visible={visible} title="Select Date" onCancel={onCancel} onDone={() => onConfirm(date)}>
+      <WebDateInput date={date} onChange={setDate} />
     </Sheet>
   );
 }
@@ -161,12 +228,7 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
 
   if (Platform.OS === 'ios') {
     return (
-      <Sheet
-        visible={visible}
-        title="Select Time"
-        onCancel={onCancel}
-        onDone={() => onConfirm(formatTime(date))}
-      >
+      <Sheet visible={visible} title="Select Time" onCancel={onCancel} onDone={() => onConfirm(formatTime(date))}>
         <DateTimePicker
           value={date}
           mode="time"
@@ -180,23 +242,10 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
     );
   }
 
-  // Web fallback
+  // Web: centered dialog with styled HTML time input
   return (
-    <Sheet
-      visible={visible}
-      title="Select Time"
-      onCancel={onCancel}
-      onDone={() => onConfirm(formatTime(date))}
-    >
-      <View style={styles_webPickerWrap}>
-        <DateTimePicker
-          value={date}
-          mode="time"
-          display="default"
-          is24Hour={false}
-          onChange={(_, d) => { if (d) setDate(d); }}
-        />
-      </View>
+    <Sheet visible={visible} title="Select Time" onCancel={onCancel} onDone={() => onConfirm(formatTime(date))}>
+      <WebTimeInput date={date} onChange={setDate} />
     </Sheet>
   );
 }
@@ -206,11 +255,18 @@ export function TimePickerModal({ visible, value, onConfirm, onCancel }) {
 export function DropdownModal({ visible, title, items, selected, onSelect, onCancel }) {
   const colors = useColors();
   const styles = makeStyles(colors);
+  const isWeb = Platform.OS === 'web';
+
   return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <View style={styles.handle} />
+    <Modal
+      visible={visible}
+      transparent
+      animationType={isWeb ? 'fade' : 'slide'}
+      statusBarTranslucent
+    >
+      <View style={isWeb ? styles.backdropWeb : styles.backdrop}>
+        <View style={isWeb ? styles.cardWeb : styles.card}>
+          {!isWeb && <View style={styles.handle} />}
           <View style={styles.cardHeader}>
             <TouchableOpacity onPress={onCancel}>
               <Text style={styles.cancelTxt}>Cancel</Text>
@@ -218,7 +274,10 @@ export function DropdownModal({ visible, title, items, selected, onSelect, onCan
             <Text style={styles.cardTitle}>{title}</Text>
             <View style={{ width: 60 }} />
           </View>
-          <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={isWeb ? styles.dropScrollWeb : { maxHeight: 360 }}
+            showsVerticalScrollIndicator={false}
+          >
             {items.map((item) => {
               const active = item.value === selected;
               return (
@@ -242,15 +301,13 @@ export function DropdownModal({ visible, title, items, selected, onSelect, onCan
   );
 }
 
-// ─── Static styles (platform picker sizing, not themed) ───────────────────────
+// ─── Static styles ────────────────────────────────────────────────────────────
 
 const styles_nativePicker = { width: '100%', height: 216 };
-const styles_webPickerWrap = { alignItems: 'center', paddingVertical: 24 };
-
-// ─── Themed styles ────────────────────────────────────────────────────────────
 
 function makeStyles(c) {
   return StyleSheet.create({
+    // Native: bottom sheet
     backdrop: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -270,6 +327,30 @@ function makeStyles(c) {
       marginTop: 10,
       marginBottom: 2,
     },
+
+    // Web: centered dialog
+    backdropWeb: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      padding: 24,
+    },
+    cardWeb: {
+      backgroundColor: c.card,
+      borderRadius: 20,
+      width: '100%',
+      maxWidth: 420,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 24,
+      elevation: 10,
+      overflow: 'hidden',
+    },
+    dropScrollWeb: { maxHeight: 320 },
+
+    // Shared header
     cardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -279,9 +360,11 @@ function makeStyles(c) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: c.border,
     },
-    cardTitle: { fontSize: 16, fontWeight: '700', color: c.textPrimary },
-    cancelTxt: { fontSize: 15, color: c.textSecondary, width: 60 },
-    doneTxt:   { fontSize: 15, fontWeight: '700', color: c.primary, textAlign: 'right', width: 60 },
+    cardTitle:  { fontSize: 16, fontWeight: '700', color: c.textPrimary },
+    cancelTxt:  { fontSize: 15, color: c.textSecondary, width: 60 },
+    doneTxt:    { fontSize: 15, fontWeight: '700', color: c.primary, textAlign: 'right', width: 60 },
+
+    // Dropdown rows
     dropItem: {
       flexDirection: 'row',
       justifyContent: 'space-between',

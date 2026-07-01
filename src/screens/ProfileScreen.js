@@ -10,16 +10,23 @@ import { useApp, useColors } from '../context/AppContext';
 const SIZE_OPTIONS = ['small', 'medium', 'large'];
 const SIZE_LABELS = { small: 'Small', medium: 'Medium', large: 'Large' };
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+
 async function pickImage() {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85,
   });
-  if (!result.canceled) return result.assets[0].uri;
-  return null;
+  if (result.canceled) return null;
+  const asset = result.assets[0];
+  if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
+    Alert.alert('Image too large', 'Please choose an image under 5 MB.');
+    return null;
+  }
+  return asset.uri;
 }
 
 export default function ProfileScreen() {
-  const { walks, rsvps, user, dogs, updateUser, updateDog, addDog, isDark, toggleTheme } = useApp();
+  const { walks, rsvps, user, dogs, session, updateUser, updateDog, addDog, isDark, toggleTheme, signOut } = useApp();
   const colors = useColors();
   const styles = makeStyles(colors);
 
@@ -49,8 +56,8 @@ export default function ProfileScreen() {
   const toggleNotif = (key) => setNotifications((n) => ({ ...n, [key]: !n[key] }));
   const togglePrivacy = (key) => setPrivacy((p) => ({ ...p, [key]: !p[key] }));
 
-  const walksLed = walks.filter((w) => w.organizerId === 'user-1').length;
-  const walksJoined = rsvps.filter((r) => r.userId === 'user-1').length;
+  const walksLed = walks.filter((w) => w.organizerId === session?.user?.id).length;
+  const walksJoined = rsvps.filter((r) => r.userId === session?.user?.id).length;
 
   const handlePickProfilePhoto = async () => {
     const uri = await pickImage();
@@ -186,7 +193,7 @@ export default function ProfileScreen() {
             style={[styles.menuItem, { borderBottomWidth: 0 }]}
             onPress={() => Alert.alert('Log Out', 'Are you sure?', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Log Out', style: 'destructive' },
+              { text: 'Log Out', style: 'destructive', onPress: signOut },
             ])}
           >
             <Ionicons name="log-out-outline" size={20} color={colors.danger} />

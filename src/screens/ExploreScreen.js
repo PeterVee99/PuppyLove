@@ -6,6 +6,7 @@ import {
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, useColors } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import WalkCard from '../components/WalkCard';
 import SpecificDatePicker from '../components/SpecificDatePicker';
 
@@ -57,7 +58,7 @@ function matchesDate(walkDate, dateFilter, specificDate) {
 }
 
 export default function ExploreScreen({ navigation }) {
-  const { walks, rsvps, user } = useApp();
+  const { walks, rsvps, user, session } = useApp();
   const colors = useColors();
   const styles = makeStyles(colors);
   const [search, setSearch] = useState('');
@@ -66,7 +67,7 @@ export default function ExploreScreen({ navigation }) {
   const [pending, setPending] = useState({ ...DEFAULT_FILTERS });
   const [applied, setApplied] = useState({ ...DEFAULT_FILTERS });
 
-  const rsvpdIds = new Set(rsvps.filter(r => r.userId === 'user-1').map(r => r.walkId));
+  const rsvpdIds = new Set(rsvps.filter(r => r.userId === session?.user?.id).map(r => r.walkId));
   const nearbyNew = walks.filter(w => !rsvpdIds.has(w.id)).slice(0, 5);
 
   const activeCount = [
@@ -96,6 +97,28 @@ export default function ExploreScreen({ navigation }) {
   const applyFilters = () => { setApplied({ ...pending }); setShowFilters(false); };
   const resetFilters = () => setPending({ ...DEFAULT_FILTERS });
   const set = (key, val) => setPending(prev => ({ ...prev, [key]: val }));
+
+  const handleMessagePress = async (walk) => {
+    const isOwnWalk = walk.organizerId === session?.user?.id;
+    if (isOwnWalk) return;
+    try {
+      const { data: convId, error } = await supabase.rpc('create_or_get_direct_conversation', {
+        other_user_id: walk.organizerId,
+        other_user_name: walk.organizerName,
+      });
+      if (error) throw error;
+      navigation.getParent()?.navigate('Messages', {
+        screen: 'Conversation',
+        params: {
+          conversationId: convId,
+          title: walk.organizerName,
+          returnTo: { tab: 'Explore', screen: 'ExploreMain' },
+        },
+      });
+    } catch (err) {
+      if (__DEV__) console.error('Message from explore failed:', err);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,7 +172,11 @@ export default function ExploreScreen({ navigation }) {
         data={filtered}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <WalkCard walk={item} onPress={() => navigation.navigate('WalkDetail', { walkId: item.id })} />
+          <WalkCard
+            walk={item}
+            onPress={() => navigation.navigate('WalkDetail', { walkId: item.id })}
+            onMessagePress={item.organizerId !== session?.user?.id ? () => handleMessagePress(item) : undefined}
+          />
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -311,7 +338,7 @@ function makeStyles(c) {
     },
     filterBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
     resultsLabel: { fontSize: 12, color: c.textMuted, marginHorizontal: 16, marginTop: 8, marginBottom: 2 },
-    listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+    listContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
     empty: { alignItems: 'center', paddingTop: 60 },
     emptyEmoji: { fontSize: 40, marginBottom: 10 },
     emptyText: { fontSize: 16, color: c.textMuted, fontWeight: '600' },

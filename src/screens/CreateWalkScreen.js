@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, TextInput,
-  Switch, StyleSheet, SafeAreaView,
+  Switch, StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,10 +28,17 @@ const ATTENDEES_OPTIONS = [
   ...Array.from({ length: 30 }, (_, i) => ({ label: String(i + 1), value: i + 1 })),
 ];
 
+const VIBES = [
+  { id: 'leisurely', label: 'Leisurely', emoji: '🌿' },
+  { id: 'off_lead',  label: 'Off Lead',  emoji: '🐕' },
+  { id: 'wine',      label: 'Wine',      emoji: '🍷' },
+  { id: 'coffee',    label: 'Coffee',    emoji: '☕' },
+];
+
 const BLANK = {
   title: '', location: '', dateObj: null, timeStr: null, duration: '60',
   description: '', maxAttendees: null, dogSize: 'all_sizes',
-  recurring: false, recurringUntilObj: null, imageUrl: null,
+  vibes: [], recurring: false, recurringUntilObj: null, imageUrl: null,
 };
 
 function formatDate(d) {
@@ -62,7 +69,14 @@ export default function CreateWalkScreen({ navigation }) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.85,
     });
-    if (!result.canceled && result.assets[0]) set('imageUrl', result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Image too large', 'Please choose an image under 5 MB.');
+        return;
+      }
+      set('imageUrl', asset.uri);
+    }
   };
 
   const validate = () => {
@@ -83,7 +97,7 @@ export default function CreateWalkScreen({ navigation }) {
       duration: parseInt(form.duration) || 60, description: form.description.trim(),
       maxAttendees: form.maxAttendees, dogFriendlyFor: [form.dogSize],
       recurring: form.recurring, recurringUntil: form.recurringUntilObj ? formatDate(form.recurringUntilObj) : null,
-      distance: null, imageUrl: form.imageUrl,
+      distance: null, imageUrl: form.imageUrl, vibes: form.vibes,
     });
     setForm(BLANK); setErrors({});
     navigation.navigate('Explore');
@@ -172,6 +186,28 @@ export default function CreateWalkScreen({ navigation }) {
 
           <Field label="Description" styles={styles} colors={colors}>
             <TextInput style={[styles.input, styles.textarea]} placeholder="Tell people about the walk..." placeholderTextColor={colors.textMuted} value={form.description} onChangeText={(v) => set('description', v)} multiline textAlignVertical="top" />
+          </Field>
+
+          <Field label="Vibe" styles={styles} colors={colors}>
+            <View style={styles.chips}>
+              {VIBES.map((v) => {
+                const active = form.vibes.includes(v.id);
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => set('vibes', active
+                      ? form.vibes.filter((x) => x !== v.id)
+                      : [...form.vibes, v.id]
+                    )}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                      {v.emoji} {v.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </Field>
 
           <Field label="Max Attendees" styles={styles} colors={colors}>

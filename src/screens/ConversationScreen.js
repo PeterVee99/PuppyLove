@@ -1,67 +1,116 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform,
+  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColors } from '../context/AppContext';
-import { conversations, messageHistory } from '../data/mockData';
+import { useApp, useColors } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 
 export default function ConversationScreen({ navigation, route }) {
   const colors = useColors();
   const styles = makeStyles(colors);
-  const { conversationId } = route.params;
-  const conversation = conversations.find((c) => c.id === conversationId);
-  const [messages, setMessages] = useState(messageHistory[conversationId] || []);
+  const { session } = useApp();
+  const { conversationId, title = 'Conversation', returnTo } = route.params;
+  const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [loading, setLoading] = useState(true);
   const listRef = useRef(null);
+  const userId = session?.user?.id;
 
-  const name =
-    conversation?.type === 'walk_group'
-      ? conversation.walkName
-      : conversation?.participantName;
+  useEffect(() => {
+    if (!conversationId) return;
+    supabase
+      .from('messages')
+      .select('id, sender_id, text, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (data) {
+          setMessages(data.map((m) => ({
+            id: m.id,
+            senderId: m.sender_id,
+            text: m.text,
+            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          })));
+        }
+        setLoading(false);
+      });
+  }, [conversationId]);
 
-  const send = () => {
-    if (!text.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `msg-${Date.now()}`,
-        senderId: 'user-1',
-        text: text.trim(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  const send = async () => {
+    if (!text.trim() || !userId) return;
+    const trimmed = text.trim();
     setText('');
+    const temp = {
+      id: `tmp-${Date.now()}`,
+      senderId: userId,
+      text: trimmed,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, temp]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({ conversation_id: conversationId, sender_id: userId, text: trimmed })
+      .select()
+      .single();
+
+    if (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== temp.id));
+    } else if (data) {
+      setMessages((prev) => prev.map((m) => m.id === temp.id ? {
+        id: data.id,
+        senderId: data.sender_id,
+        text: data.text,
+        timestamp: new Date(data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      } : m));
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            if (returnTo) {
+              navigation.getParent()?.navigate(returnTo.tab, {
+                screen: returnTo.screen,
+                params: returnTo.params,
+              });
+            } else {
+              navigation.goBack();
+            }
+          }}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{name}</Text>
-        <TouchableOpacity style={styles.infoBtn}>
-          <Ionicons name="information-circle-outline" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <Bubble message={item} isOwn={item.senderId === 'user-1'} />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onLayout={() => messages.length > 0 && listRef.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No messages yet. Say hi! 👋</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <Bubble message={item} isOwn={item.senderId === userId} />}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onLayout={() => messages.length > 0 && listRef.current?.scrollToEnd({ animated: false })}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No messages yet. Say hi! 👋</Text>
+            </View>
+          }
+        />
+      )}
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.inputRow}>
@@ -112,7 +161,8 @@ function makeStyles(c) {
     },
     backBtn: { padding: 4, marginRight: 4 },
     headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: c.textPrimary, textAlign: 'center' },
-    infoBtn: { padding: 4 },
+    placeholder: { width: 30 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     listContent: { padding: 16, paddingBottom: 8 },
     empty: { alignItems: 'center', paddingTop: 40 },
     emptyText: { color: c.textMuted, fontSize: 14 },
