@@ -34,7 +34,7 @@ function mapWalk(row) {
     maxAttendees:   row.max_attendees ?? null,
     dogFriendlyFor: row.dog_friendly_for ?? ['all_sizes'],
     vibes:          row.vibe ?? [],
-    imageUrl:       row.image_url ?? null,
+    imageUrl:       row.image_url?.startsWith('http') ? row.image_url : null,
     recurring:      row.recurring,
     recurringUntil: row.recurring_until ? formatDate(row.recurring_until) : null,
     status:         row.status,
@@ -51,7 +51,7 @@ function mapProfile(row) {
     name:            row.name,
     location:        row.location ?? '',
     bio:             row.bio ?? '',
-    profileImageUrl: row.profile_image_url ?? null,
+    profileImageUrl: row.profile_image_url?.startsWith('http') ? row.profile_image_url : null,
   };
 }
 
@@ -63,7 +63,7 @@ function mapDog(row) {
     breed:    row.breed,
     size:     row.size,
     age:      row.age ?? null,
-    imageUrl: row.image_url ?? null,
+    imageUrl: row.image_url?.startsWith('http') ? row.image_url : null,
   };
 }
 
